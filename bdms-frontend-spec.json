@@ -1,0 +1,932 @@
+{
+    "project": {
+        "name": "BDMS Frontend",
+        "fullName": "Banca Distributed Management System",
+        "version": "1.0.0",
+        "phase": 1,
+        "description": "Enterprise frontend for the Banca Distributed Management System.",
+        "backendBaseUrl": "http://localhost:8080",
+        "apiBasePath": "/api/v1",
+        "sourceOfTruth": "BDMS Backend OpenAPI 3.0.1"
+    },
+    "technology": {
+        "framework": "Vue 3",
+        "language": "TypeScript",
+        "buildTool": "Vite",
+        "uiFramework": "Vuetify 3",
+        "stateManagement": "Pinia",
+        "routing": "Vue Router",
+        "httpClient": "Axios",
+        "icons": "@mdi/font",
+        "validation": "VeeValidate + Yup",
+        "dateLibrary": "Day.js",
+        "testing": [
+            "Vitest",
+            "Vue Test Utils"
+        ],
+        "linting": [
+            "ESLint",
+            "Prettier"
+        ]
+    },
+    "architecture": {
+        "style": "feature-oriented modular frontend",
+        "principles": [
+            "API-driven UI",
+            "Reusable components",
+            "Thin pages",
+            "Business-independent presentation layer",
+            "Centralized API client",
+            "Centralized authentication state",
+            "Role-based route and UI protection",
+            "Consistent loading/error/empty states",
+            "Responsive enterprise dashboard",
+            "Do not duplicate backend business rules in frontend"
+        ]
+    },
+    "folderStructure": {
+        "src": [
+            "assets",
+            "components/common",
+            "components/forms",
+            "components/tables",
+            "layouts",
+            "pages/auth",
+            "pages/dashboard",
+            "pages/agents",
+            "pages/branches",
+            "pages/banks",
+            "pages/regions",
+            "pages/areas",
+            "pages/users",
+            "pages/roles",
+            "pages/audit-logs",
+            "router",
+            "services",
+            "stores",
+            "types",
+            "utils",
+            "composables",
+            "plugins"
+        ]
+    },
+    "designSystem": {
+        "style": "modern enterprise insurance/bancassurance application",
+        "requirements": [
+            "Clean professional UI",
+            "Desktop-first but responsive",
+            "Use Vuetify components",
+            "Consistent spacing and typography",
+            "Use status chips for lifecycle statuses",
+            "Use confirmation dialogs for destructive or sensitive actions",
+            "Never expose sensitive PII unnecessarily",
+            "Mask NIK in UI",
+            "Show clear success/error feedback",
+            "Use skeleton/loading states",
+            "Use empty states for tables",
+            "Use breadcrumbs on detail pages"
+        ],
+        "navigation": {
+            "sidebar": [
+                {
+                    "label": "Dashboard",
+                    "route": "/dashboard",
+                    "icon": "mdi-view-dashboard"
+                },
+                {
+                    "label": "Agents",
+                    "route": "/agents",
+                    "icon": "mdi-account-group"
+                },
+                {
+                    "label": "Branches",
+                    "route": "/branches",
+                    "icon": "mdi-office-building"
+                },
+                {
+                    "label": "Banks",
+                    "route": "/banks",
+                    "icon": "mdi-bank"
+                },
+                {
+                    "label": "Regions",
+                    "route": "/regions",
+                    "icon": "mdi-map"
+                },
+                {
+                    "label": "Areas",
+                    "route": "/areas",
+                    "icon": "mdi-map-marker-multiple"
+                },
+                {
+                    "label": "Users",
+                    "route": "/users",
+                    "icon": "mdi-account-cog"
+                },
+                {
+                    "label": "Roles",
+                    "route": "/roles",
+                    "icon": "mdi-shield-account"
+                },
+                {
+                    "label": "Audit Logs",
+                    "route": "/audit-logs",
+                    "icon": "mdi-history"
+                }
+            ]
+        }
+    },
+    "authentication": {
+        "login": {
+            "endpoint": "POST /api/v1/auth/login",
+            "request": {
+                "username": "string",
+                "password": "string"
+            },
+            "responseData": {
+                "accessToken": "string",
+                "refreshToken": "string",
+                "tokenType": "string",
+                "expiresIn": "number"
+            }
+        },
+        "refresh": {
+            "endpoint": "POST /api/v1/auth/refresh",
+            "request": {
+                "refreshToken": "string"
+            }
+        },
+        "storage": {
+            "accessToken": "sessionStorage",
+            "refreshToken": "sessionStorage",
+            "userProfile": "Pinia persisted state"
+        },
+        "axiosBehavior": [
+            "Attach Authorization: Bearer <accessToken> to protected requests",
+            "On HTTP 401, attempt one token refresh",
+            "If refresh fails, clear authentication state and redirect to /login",
+            "Never log access tokens or refresh tokens"
+        ]
+    },
+    "apiClient": {
+        "baseURL": "VITE_API_BASE_URL",
+        "timeoutMs": 30000,
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "responseHandling": {
+            "successEnvelope": {
+                "success": true,
+                "data": "object",
+                "message": "string|null",
+                "errorCode": "string|null",
+                "timestamp": "ISO-8601",
+                "traceId": "string"
+            },
+            "errorHandling": [
+                "Display backend message when safe",
+                "Display errorCode for support/debug context",
+                "Display traceId on unexpected errors",
+                "Handle 400 validation errors",
+                "Handle 401 authentication errors",
+                "Handle 403 authorization errors",
+                "Handle 404 not found",
+                "Handle 409 duplicate/conflict",
+                "Handle 500 generic server error"
+            ]
+        }
+    },
+    "pagination": {
+        "request": {
+            "page": "zero-based integer",
+            "size": "integer, default 20, maximum 100"
+        },
+        "response": {
+            "content": "array",
+            "page": "number",
+            "size": "number",
+            "totalElements": "number",
+            "totalPages": "number",
+            "last": "boolean"
+        },
+        "uiRules": [
+            "Display 1-based page numbers to users",
+            "Convert UI page number to zero-based API page",
+            "Provide page-size selector",
+            "Default page size 20",
+            "Allow 20, 50, 100"
+        ]
+    },
+    "routes": {
+        "public": [
+            "/login"
+        ],
+        "protected": [
+            "/dashboard",
+            "/agents",
+            "/agents/:id",
+            "/branches",
+            "/branches/:id",
+            "/banks",
+            "/banks/:id",
+            "/regions",
+            "/regions/:id",
+            "/areas",
+            "/areas/:id",
+            "/users",
+            "/users/:id",
+            "/roles",
+            "/roles/:id",
+            "/audit-logs"
+        ]
+    },
+    "pages": {
+        "login": {
+            "route": "/login",
+            "features": [
+                "Username input",
+                "Password input",
+                "Show/hide password",
+                "Login button",
+                "Loading state",
+                "Validation",
+                "Backend error message"
+            ]
+        },
+        "dashboard": {
+            "route": "/dashboard",
+            "phase": 1,
+            "dataStrategy": "Use existing list APIs to obtain summary counts; do not invent dashboard APIs.",
+            "widgets": [
+                "Total Agents",
+                "Active Agents",
+                "Total Branches",
+                "Active Branches",
+                "Total Banks",
+                "Total Users"
+            ],
+            "note": "If efficient aggregation is not possible from current APIs, display a simple operational dashboard and do not create fake metrics."
+        },
+        "agents": {
+            "list": {
+                "route": "/agents",
+                "endpoint": "GET /api/v1/agents",
+                "columns": [
+                    "agentCode",
+                    "nikMasked",
+                    "fullName",
+                    "email",
+                    "phone",
+                    "status",
+                    "createdAt",
+                    "actions"
+                ],
+                "features": [
+                    "Pagination",
+                    "Refresh",
+                    "View detail",
+                    "Edit",
+                    "Create agent",
+                    "Status chip"
+                ]
+            },
+            "create": {
+                "endpoint": "POST /api/v1/agents",
+                "fields": [
+                    {
+                        "name": "agentCode",
+                        "type": "text",
+                        "required": true,
+                        "maxLength": 30
+                    },
+                    {
+                        "name": "nik",
+                        "type": "text",
+                        "required": true,
+                        "sensitive": true
+                    },
+                    {
+                        "name": "fullName",
+                        "type": "text",
+                        "required": true,
+                        "maxLength": 150
+                    },
+                    {
+                        "name": "email",
+                        "type": "email",
+                        "required": false,
+                        "maxLength": 150
+                    },
+                    {
+                        "name": "phone",
+                        "type": "text",
+                        "required": false,
+                        "maxLength": 30
+                    }
+                ]
+            },
+            "edit": {
+                "endpoint": "PUT /api/v1/agents/{id}",
+                "fields": [
+                    "fullName",
+                    "email",
+                    "phone",
+                    "status"
+                ],
+                "rule": "Do not expose or edit nik from the update form because backend UpdateAgentRequest does not contain nik."
+            },
+            "detail": {
+                "endpoint": "GET /api/v1/agents/{id}",
+                "display": [
+                    "agentCode",
+                    "nikMasked",
+                    "fullName",
+                    "email",
+                    "phone",
+                    "status",
+                    "createdAt",
+                    "updatedAt"
+                ]
+            }
+        },
+        "branches": {
+            "list": {
+                "route": "/branches",
+                "endpoint": "GET /api/v1/branches",
+                "columns": [
+                    "code",
+                    "name",
+                    "bankName",
+                    "areaName",
+                    "status",
+                    "address",
+                    "createdAt",
+                    "actions"
+                ]
+            },
+            "create": {
+                "endpoint": "POST /api/v1/branches",
+                "fields": [
+                    "bankId",
+                    "areaId",
+                    "code",
+                    "name",
+                    "address"
+                ],
+                "dependentSelection": "Area selection should be filtered by selected bank where possible using available API data."
+            },
+            "edit": {
+                "endpoint": "PUT /api/v1/branches/{id}",
+                "fields": [
+                    "name",
+                    "status",
+                    "address"
+                ]
+            },
+            "detail": {
+                "endpoint": "GET /api/v1/branches/{id}"
+            }
+        },
+        "banks": {
+            "list": {
+                "route": "/banks",
+                "endpoint": "GET /api/v1/banks",
+                "columns": [
+                    "code",
+                    "name",
+                    "status",
+                    "createdAt",
+                    "actions"
+                ]
+            },
+            "create": {
+                "endpoint": "POST /api/v1/banks",
+                "fields": [
+                    "code",
+                    "name"
+                ]
+            },
+            "edit": {
+                "endpoint": "PUT /api/v1/banks/{id}",
+                "fields": [
+                    "name",
+                    "status"
+                ]
+            }
+        },
+        "regions": {
+            "list": {
+                "route": "/regions",
+                "endpoint": "GET /api/v1/regions",
+                "columns": [
+                    "code",
+                    "name",
+                    "bankName",
+                    "status",
+                    "createdAt",
+                    "actions"
+                ]
+            },
+            "create": {
+                "endpoint": "POST /api/v1/regions",
+                "fields": [
+                    "bankId",
+                    "code",
+                    "name"
+                ]
+            },
+            "edit": {
+                "endpoint": "PUT /api/v1/regions/{id}",
+                "fields": [
+                    "name",
+                    "status"
+                ]
+            }
+        },
+        "areas": {
+            "list": {
+                "route": "/areas",
+                "endpoint": "GET /api/v1/areas",
+                "columns": [
+                    "code",
+                    "name",
+                    "regionName",
+                    "status",
+                    "createdAt",
+                    "actions"
+                ]
+            },
+            "create": {
+                "endpoint": "POST /api/v1/areas",
+                "fields": [
+                    "regionId",
+                    "code",
+                    "name"
+                ]
+            },
+            "edit": {
+                "endpoint": "PUT /api/v1/areas/{id}",
+                "fields": [
+                    "name",
+                    "status"
+                ]
+            }
+        },
+        "users": {
+            "list": {
+                "route": "/users",
+                "endpoint": "GET /api/v1/users",
+                "columns": [
+                    "username",
+                    "email",
+                    "status",
+                    "roles",
+                    "createdAt",
+                    "updatedAt",
+                    "actions"
+                ]
+            },
+            "create": {
+                "endpoint": "POST /api/v1/users",
+                "fields": [
+                    "username",
+                    "email",
+                    "password",
+                    "roleIds"
+                ]
+            },
+            "edit": {
+                "endpoint": "PUT /api/v1/users/{id}",
+                "fields": [
+                    "email",
+                    "password",
+                    "status",
+                    "roleIds"
+                ],
+                "passwordRule": "Optional on update; never prefill an existing password."
+            }
+        },
+        "roles": {
+            "list": {
+                "route": "/roles",
+                "endpoint": "GET /api/v1/roles",
+                "readOnly": true,
+                "columns": [
+                    "code",
+                    "name",
+                    "description",
+                    "createdAt"
+                ]
+            },
+            "detail": {
+                "endpoint": "GET /api/v1/roles/{id}",
+                "readOnly": true
+            }
+        },
+        "auditLogs": {
+            "list": {
+                "route": "/audit-logs",
+                "endpoint": "GET /api/v1/audit-logs",
+                "queryParameters": [
+                    "page",
+                    "size",
+                    "entityType"
+                ],
+                "columns": [
+                    "createdAt",
+                    "username",
+                    "action",
+                    "entityType",
+                    "entityId",
+                    "ipAddress",
+                    "traceId"
+                ],
+                "features": [
+                    "Pagination",
+                    "Entity type filter",
+                    "View audit detail"
+                ],
+                "sensitiveDataRule": "Do not render raw oldValue/newValue by default. Provide a detail dialog with formatted JSON and appropriate masking."
+            }
+        }
+    },
+    "apiServices": {
+        "authService": [
+            "login",
+            "refresh"
+        ],
+        "agentService": [
+            "getAgents",
+            "getAgent",
+            "createAgent",
+            "updateAgent"
+        ],
+        "branchService": [
+            "getBranches",
+            "getBranch",
+            "createBranch",
+            "updateBranch"
+        ],
+        "bankService": [
+            "getBanks",
+            "getBank",
+            "createBank",
+            "updateBank"
+        ],
+        "regionService": [
+            "getRegions",
+            "getRegion",
+            "createRegion",
+            "updateRegion"
+        ],
+        "areaService": [
+            "getAreas",
+            "getArea",
+            "createArea",
+            "updateArea"
+        ],
+        "userService": [
+            "getUsers",
+            "getUser",
+            "createUser",
+            "updateUser"
+        ],
+        "roleService": [
+            "getRoles",
+            "getRole"
+        ],
+        "auditService": [
+            "getAuditLogs"
+        ]
+    },
+    "types": {
+        "ApiResponse": {
+            "success": "boolean",
+            "data": "T",
+            "message": "string|null",
+            "errorCode": "string|null",
+            "timestamp": "string",
+            "traceId": "string"
+        },
+        "PagedResponse": {
+            "content": "T[]",
+            "page": "number",
+            "size": "number",
+            "totalElements": "number",
+            "totalPages": "number",
+            "last": "boolean"
+        },
+        "Agent": [
+            "id",
+            "agentCode",
+            "nikMasked",
+            "fullName",
+            "email",
+            "phone",
+            "status",
+            "createdAt",
+            "updatedAt"
+        ],
+        "Branch": [
+            "id",
+            "bankId",
+            "bankName",
+            "areaId",
+            "areaName",
+            "code",
+            "name",
+            "status",
+            "address",
+            "createdAt",
+            "updatedAt"
+        ],
+        "Bank": [
+            "id",
+            "code",
+            "name",
+            "status",
+            "createdAt",
+            "updatedAt"
+        ],
+        "Region": [
+            "id",
+            "bankId",
+            "bankName",
+            "code",
+            "name",
+            "status",
+            "createdAt",
+            "updatedAt"
+        ],
+        "Area": [
+            "id",
+            "regionId",
+            "regionName",
+            "code",
+            "name",
+            "status",
+            "createdAt",
+            "updatedAt"
+        ],
+        "User": [
+            "id",
+            "username",
+            "email",
+            "status",
+            "roles",
+            "createdAt",
+            "updatedAt"
+        ],
+        "Role": [
+            "id",
+            "code",
+            "name",
+            "description",
+            "createdAt"
+        ]
+    },
+    "stores": {
+        "authStore": {
+            "state": [
+                "accessToken",
+                "refreshToken",
+                "authenticated",
+                "currentUser"
+            ],
+            "actions": [
+                "login",
+                "refreshToken",
+                "logout",
+                "initializeAuth"
+            ]
+        },
+        "appStore": {
+            "state": [
+                "sidebarOpen",
+                "globalLoading",
+                "notifications"
+            ]
+        }
+    },
+    "rbac": {
+        "roles": [
+            "ROLE_ADMIN",
+            "ROLE_BRANCH_USER",
+            "ROLE_MANAGER",
+            "ROLE_AUDITOR"
+        ],
+        "uiRules": [
+            "ROLE_ADMIN can access all administration screens.",
+            "ROLE_AUDITOR should have read-only access to audit and permitted reference data.",
+            "Do not rely only on frontend RBAC; backend remains authoritative.",
+            "Hide actions the current role cannot reasonably perform.",
+            "If backend returns 403, show a clear authorization message."
+        ]
+    },
+    "statusPresentation": {
+        "DRAFT": "warning",
+        "PENDING_ACTIVATION": "info",
+        "ACTIVE": "success",
+        "SUSPENDED": "warning",
+        "CLOSED": "error",
+        "SUBMITTED": "info",
+        "VERIFICATION": "info",
+        "APPROVED": "success",
+        "REJECTED": "error",
+        "INACTIVE": "secondary",
+        "TERMINATED": "error",
+        "LOCKED": "error"
+    },
+    "ux": {
+        "loading": [
+            "Use skeleton or progress indicators during initial page loading.",
+            "Disable submit button while form is submitting.",
+            "Prevent duplicate form submission."
+        ],
+        "notifications": {
+            "success": "Show snackbar after successful create/update/login.",
+            "error": "Show snackbar or inline form error for expected errors.",
+            "unexpected": "Show generic message plus traceId."
+        },
+        "forms": [
+            "Client-side validation must mirror backend constraints where practical.",
+            "Backend validation remains authoritative.",
+            "Preserve entered values when validation fails.",
+            "Show field-level validation errors where possible."
+        ],
+        "tables": [
+            "Use Vuetify data table.",
+            "Server-side pagination.",
+            "Responsive horizontal scrolling on narrow screens.",
+            "Show empty state when there are no records."
+        ]
+    },
+    "security": {
+        "requirements": [
+            "Never display plaintext NIK.",
+            "Never store passwords.",
+            "Never log tokens.",
+            "Never put access tokens in URL query parameters.",
+            "Clear auth state on logout.",
+            "Handle expired access tokens.",
+            "Use route guards for protected routes.",
+            "Backend remains the final authorization authority."
+        ]
+    },
+    "environment": {
+        "files": [
+            ".env",
+            ".env.development",
+            ".env.production",
+            ".env.example"
+        ],
+        "variables": {
+            "VITE_API_BASE_URL": "http://localhost:8080"
+        }
+    },
+    "testing": {
+        "required": true,
+        "unitTests": [
+            "auth store",
+            "API services",
+            "route guards",
+            "form validation",
+            "status mapping"
+        ],
+        "componentTests": [
+            "Login",
+            "AgentList",
+            "AgentForm",
+            "BranchList",
+            "BranchForm",
+            "UserForm"
+        ],
+        "e2eCandidates": [
+            "Login",
+            "Create agent",
+            "Update agent",
+            "Create branch",
+            "Update branch",
+            "Create user",
+            "Logout"
+        ]
+    },
+    "nonGoalsPhase1": [
+        "Agent branch transfer workflow",
+        "Agent activation workflow",
+        "Branch activation workflow",
+        "Maker checker",
+        "Notification center",
+        "Bank API integration",
+        "Insurance core integration",
+        "SSO/OIDC",
+        "Advanced reporting",
+        "Real-time events"
+    ],
+    "definitionOfDone": [
+        "Vue application starts successfully.",
+        "Login works against the provided backend.",
+        "JWT access token is attached to protected API requests.",
+        "Refresh token flow works.",
+        "Protected routes redirect unauthenticated users to login.",
+        "Dashboard renders without fake backend data.",
+        "All Phase 1 master-data list pages work.",
+        "Create and update forms work for supported APIs.",
+        "Pagination works with backend pagination.",
+        "Role-aware UI is implemented.",
+        "Audit log page works.",
+        "PII is masked.",
+        "Error handling displays backend errorCode and traceId where appropriate.",
+        "Responsive layout works.",
+        "Unit/component tests pass.",
+        "npm run build succeeds."
+    ],
+    "claudeInstructions": {
+        "role": "Act as a Senior Vue 3 Enterprise Frontend Engineer with experience building insurance and bancassurance applications.",
+        "sourceOfTruth": [
+            "This JSON specification",
+            "BDMS Backend OpenAPI documentation"
+        ],
+        "rules": [
+            "Do not invent API endpoints.",
+            "Use only endpoints documented in the backend OpenAPI.",
+            "Do not invent response fields.",
+            "Do not invent dashboard APIs.",
+            "Do not put business rules in Vue that belong to the backend.",
+            "Use TypeScript strictly.",
+            "Use Composition API and script setup.",
+            "Use Vuetify 3.",
+            "Use Pinia for shared state.",
+            "Use Axios through a centralized API client.",
+            "Use Vue Router route guards.",
+            "Use reusable components.",
+            "Do not expose sensitive PII.",
+            "Do not use mock data in production pages.",
+            "Use loading, empty, error, and success states.",
+            "Generate complete compilable code.",
+            "Do not provide pseudo-code.",
+            "Keep API services separate from page components.",
+            "Keep page components focused on orchestration and presentation.",
+            "Use typed request and response models.",
+            "Do not bypass the backend authorization model.",
+            "If an API capability is missing, do not fabricate it; represent the limitation in the UI."
+        ],
+        "implementationOrder": [
+            "Initialize Vue/Vite project",
+            "Install Vuetify, Pinia, Vue Router, Axios, validation and testing dependencies",
+            "Create application theme and layout",
+            "Create centralized Axios client",
+            "Create authentication store and login",
+            "Create route guards",
+            "Create reusable API response and pagination types",
+            "Create master-data API services",
+            "Create dashboard",
+            "Create agents pages",
+            "Create branches pages",
+            "Create banks pages",
+            "Create regions pages",
+            "Create areas pages",
+            "Create users pages",
+            "Create roles page",
+            "Create audit logs page",
+            "Implement RBAC UI behavior",
+            "Implement tests",
+            "Run npm run build and tests",
+            "Generate README"
+        ]
+    },
+    "backendApiReference": {
+        "documentedEndpoints": [
+            "POST /api/v1/auth/login",
+            "POST /api/v1/auth/refresh",
+            "GET /api/v1/agents",
+            "GET /api/v1/agents/{id}",
+            "POST /api/v1/agents",
+            "PUT /api/v1/agents/{id}",
+            "GET /api/v1/branches",
+            "GET /api/v1/branches/{id}",
+            "POST /api/v1/branches",
+            "PUT /api/v1/branches/{id}",
+            "GET /api/v1/banks",
+            "GET /api/v1/banks/{id}",
+            "POST /api/v1/banks",
+            "PUT /api/v1/banks/{id}",
+            "GET /api/v1/regions",
+            "GET /api/v1/regions/{id}",
+            "POST /api/v1/regions",
+            "PUT /api/v1/regions/{id}",
+            "GET /api/v1/areas",
+            "GET /api/v1/areas/{id}",
+            "POST /api/v1/areas",
+            "PUT /api/v1/areas/{id}",
+            "GET /api/v1/users",
+            "GET /api/v1/users/{id}",
+            "POST /api/v1/users",
+            "PUT /api/v1/users/{id}",
+            "GET /api/v1/roles",
+            "GET /api/v1/roles/{id}",
+            "GET /api/v1/audit-logs"
+        ],
+        "importantConstraint": "The current backend OpenAPI does not document DELETE endpoints or workflow/activation/transfer endpoints."
+    }
+}

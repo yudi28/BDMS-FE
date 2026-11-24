@@ -1,0 +1,988 @@
+{
+  "project": {
+    "name": "BDMS Frontend",
+    "system": "Banca Distributed Management System",
+    "phase": "Phase 2 - Agent Lifecycle",
+    "purpose": "Extend the completed Phase 1 Vue frontend with agent lifecycle, branch assignment, transfer and workflow task capabilities using the supplied Phase 2 OpenAPI as the API source of truth."
+  },
+  "source_of_truth": {
+    "openapi_version": "3.0.1",
+    "api_title": "BDMS API",
+    "api_version": "1.0.0",
+    "base_url": "http://localhost:8080",
+    "rule": "Do not invent, rename, or assume backend endpoints or response fields. Implement only what is documented in the supplied OpenAPI."
+  },
+  "existing_frontend": {
+    "continue_existing_phase1": true,
+    "stack": [
+      "Vue 3",
+      "TypeScript",
+      "Vite",
+      "Vuetify 3",
+      "Pinia",
+      "Vue Router",
+      "Axios",
+      "VeeValidate",
+      "Yup",
+      "Day.js",
+      "Vitest"
+    ],
+    "architecture": "reuse existing Phase 1 structure, components, stores, auth, API client, layout, RBAC and pagination"
+  },
+  "phase2_scope": {
+    "include": [
+      "agent lifecycle UI",
+      "agent detail lifecycle timeline",
+      "initial branch assignment",
+      "assignment history",
+      "branch transfer request",
+      "transfer approval/rejection",
+      "my workflow task inbox",
+      "workflow task detail",
+      "workflow claim/approve/reject",
+      "lifecycle-aware agent actions",
+      "RBAC-aware action visibility",
+      "reason dialogs",
+      "loading/error/409 handling"
+    ],
+    "exclude": [
+      "new backend APIs",
+      "notifications",
+      "external integrations",
+      "mobile UI",
+      "OCR",
+      "advanced reporting",
+      "new authentication mechanism"
+    ]
+  },
+  "api_conventions": {
+    "prefix": "/api/v1",
+    "auth": "Bearer JWT",
+    "envelope": {
+      "success": "boolean",
+      "data": "T",
+      "message": "string",
+      "errorCode": "string",
+      "timestamp": "date-time",
+      "traceId": "string"
+    },
+    "pagination": {
+      "query": [
+        "page",
+        "size"
+      ],
+      "response": [
+        "content",
+        "page",
+        "size",
+        "totalElements",
+        "totalPages",
+        "last"
+      ]
+    }
+  },
+  "lifecycle": {
+    "statuses": [
+      "DRAFT",
+      "SUBMITTED",
+      "VERIFICATION",
+      "APPROVED",
+      "ACTIVE",
+      "INACTIVE",
+      "REJECTED",
+      "TERMINATED"
+    ],
+    "transitions": [
+      {
+        "from": "DRAFT",
+        "to": "SUBMITTED",
+        "endpoint": "POST /api/v1/agents/{id}/submit"
+      },
+      {
+        "from": "SUBMITTED",
+        "to": "VERIFICATION",
+        "endpoint": "POST /api/v1/agents/{id}/verify"
+      },
+      {
+        "from": "VERIFICATION",
+        "to": "APPROVED",
+        "endpoint": "POST /api/v1/agents/{id}/approve"
+      },
+      {
+        "from": "VERIFICATION",
+        "to": "REJECTED",
+        "endpoint": "POST /api/v1/agents/{id}/reject"
+      },
+      {
+        "from": "REJECTED",
+        "to": "DRAFT",
+        "note": "No dedicated reopen endpoint is documented; do not invent one."
+      },
+      {
+        "from": "APPROVED",
+        "to": "ACTIVE",
+        "endpoint": "POST /api/v1/agents/{id}/activate"
+      },
+      {
+        "from": "ACTIVE",
+        "to": "INACTIVE",
+        "endpoint": "POST /api/v1/agents/{id}/deactivate"
+      }
+    ],
+    "ui_rules": [
+      "Never render a generic status dropdown for lifecycle status.",
+      "Lifecycle changes must use dedicated action endpoints.",
+      "Show actions only when the current status and user role permit them.",
+      "Reject and deactivate require a reason.",
+      "Activation requires branch assignment; show assignment information before activation.",
+      "Do not invent a terminate endpoint because none exists in the supplied OpenAPI."
+    ]
+  },
+  "api": {
+    "agents": {
+      "list": {
+        "method": "GET",
+        "path": "/api/v1/agents",
+        "query": [
+          "page",
+          "size"
+        ]
+      },
+      "create": {
+        "method": "POST",
+        "path": "/api/v1/agents",
+        "body": "CreateAgentRequest",
+        "note": "Backend always creates DRAFT."
+      },
+      "detail": {
+        "method": "GET",
+        "path": "/api/v1/agents/{id}"
+      },
+      "updateProfile": {
+        "method": "PUT",
+        "path": "/api/v1/agents/{id}",
+        "body": "UpdateAgentRequest",
+        "note": "Profile fields only; never send status."
+      },
+      "submit": {
+        "method": "POST",
+        "path": "/api/v1/agents/{id}/submit",
+        "body": "LifecycleActionRequest"
+      },
+      "verify": {
+        "method": "POST",
+        "path": "/api/v1/agents/{id}/verify",
+        "body": "LifecycleActionRequest"
+      },
+      "approve": {
+        "method": "POST",
+        "path": "/api/v1/agents/{id}/approve",
+        "body": "LifecycleActionRequest"
+      },
+      "reject": {
+        "method": "POST",
+        "path": "/api/v1/agents/{id}/reject",
+        "body": "RejectRequest"
+      },
+      "activate": {
+        "method": "POST",
+        "path": "/api/v1/agents/{id}/activate",
+        "body": "LifecycleActionRequest"
+      },
+      "deactivate": {
+        "method": "POST",
+        "path": "/api/v1/agents/{id}/deactivate",
+        "body": "RejectRequest"
+      },
+      "lifecycleHistory": {
+        "method": "GET",
+        "path": "/api/v1/agents/{id}/lifecycle-history",
+        "query": [
+          "page",
+          "size"
+        ]
+      }
+    },
+    "assignments": {
+      "list": {
+        "method": "GET",
+        "path": "/api/v1/agents/{agentId}/assignments",
+        "query": [
+          "page",
+          "size"
+        ]
+      },
+      "create": {
+        "method": "POST",
+        "path": "/api/v1/agents/{agentId}/assignments",
+        "body": "AssignmentCreateRequest"
+      },
+      "detail": {
+        "method": "GET",
+        "path": "/api/v1/agents/{agentId}/assignments/{assignmentId}"
+      }
+    },
+    "transfers": {
+      "list": {
+        "method": "GET",
+        "path": "/api/v1/agents/{agentId}/transfers",
+        "query": [
+          "page",
+          "size"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/agents/{agentId}/transfers",
+        "body": "TransferRequest"
+      },
+      "approve": {
+        "method": "POST",
+        "path": "/api/v1/agents/{agentId}/transfers/{transferId}/approve",
+        "body": "WorkflowDecisionRequest"
+      },
+      "reject": {
+        "method": "POST",
+        "path": "/api/v1/agents/{agentId}/transfers/{transferId}/reject",
+        "body": "WorkflowDecisionRequest"
+      }
+    },
+    "workflow": {
+      "myTasks": {
+        "method": "GET",
+        "path": "/api/v1/workflow/tasks/my",
+        "query": [
+          "page",
+          "size",
+          "status"
+        ],
+        "statusEnum": [
+          "PENDING",
+          "CLAIMED",
+          "APPROVED",
+          "REJECTED",
+          "CANCELLED"
+        ]
+      },
+      "detail": {
+        "method": "GET",
+        "path": "/api/v1/workflow/tasks/{taskId}"
+      },
+      "claim": {
+        "method": "POST",
+        "path": "/api/v1/workflow/tasks/{taskId}/claim"
+      },
+      "approve": {
+        "method": "POST",
+        "path": "/api/v1/workflow/tasks/{taskId}/approve",
+        "body": "WorkflowDecisionRequest"
+      },
+      "reject": {
+        "method": "POST",
+        "path": "/api/v1/workflow/tasks/{taskId}/reject",
+        "body": "WorkflowDecisionRequest"
+      }
+    },
+    "reference": {
+      "branches": {
+        "method": "GET",
+        "path": "/api/v1/branches",
+        "query": [
+          "page",
+          "size"
+        ]
+      },
+      "users": {
+        "method": "GET",
+        "path": "/api/v1/users",
+        "query": [
+          "page",
+          "size"
+        ]
+      },
+      "roles": {
+        "method": "GET",
+        "path": "/api/v1/roles",
+        "query": [
+          "page",
+          "size"
+        ]
+      },
+      "auditLogs": {
+        "method": "GET",
+        "path": "/api/v1/audit-logs",
+        "query": [
+          "page",
+          "size",
+          "entityType"
+        ]
+      }
+    }
+  },
+  "dto": {
+    "AgentResponse": [
+      "id",
+      "agentCode",
+      "nikMasked",
+      "fullName",
+      "email",
+      "phone",
+      "status",
+      "createdAt",
+      "updatedAt"
+    ],
+    "CreateAgentRequest": {
+      "required": [
+        "agentCode",
+        "fullName",
+        "nik"
+      ],
+      "fields": {
+        "agentCode": "string max 30",
+        "nik": "string",
+        "fullName": "string max 150",
+        "email": "string max 150",
+        "phone": "string max 30"
+      }
+    },
+    "UpdateAgentRequest": {
+      "fields": {
+        "fullName": "string max 150",
+        "email": "string max 150",
+        "phone": "string max 30"
+      }
+    },
+    "LifecycleActionRequest": {
+      "fields": {
+        "reason": "string max 500 optional"
+      }
+    },
+    "RejectRequest": {
+      "required": [
+        "reason"
+      ],
+      "fields": {
+        "reason": "string min 3 max 500"
+      }
+    },
+    "WorkflowDecisionRequest": {
+      "fields": {
+        "reason": "string max 500 optional"
+      }
+    },
+    "AssignmentCreateRequest": {
+      "required": [
+        "branchId",
+        "effectiveFrom"
+      ],
+      "fields": {
+        "branchId": "uuid",
+        "effectiveFrom": "date-time",
+        "reason": "string max 500 optional"
+      }
+    },
+    "AssignmentResponse": [
+      "id",
+      "agentId",
+      "branchId",
+      "branchCode",
+      "branchName",
+      "status",
+      "effectiveFrom",
+      "effectiveTo",
+      "assignmentType",
+      "reason",
+      "createdAt",
+      "updatedAt"
+    ],
+    "TransferRequest": {
+      "required": [
+        "destinationBranchId",
+        "effectiveFrom",
+        "reason"
+      ],
+      "fields": {
+        "destinationBranchId": "uuid",
+        "effectiveFrom": "date-time",
+        "reason": "string min 3 max 500"
+      }
+    },
+    "TransferResponse": [
+      "id",
+      "agentId",
+      "sourceBranchId",
+      "sourceBranchCode",
+      "destinationBranchId",
+      "destinationBranchCode",
+      "effectiveFrom",
+      "reason",
+      "status",
+      "requestedBy",
+      "requestedAt",
+      "completedAt"
+    ],
+    "LifecycleHistoryResponse": [
+      "id",
+      "agentId",
+      "fromStatus",
+      "toStatus",
+      "reason",
+      "workflowInstanceId",
+      "changedBy",
+      "changedAt"
+    ],
+    "WorkflowTaskResponse": [
+      "id",
+      "workflowInstanceId",
+      "workflowType",
+      "entityType",
+      "entityId",
+      "taskType",
+      "status",
+      "assignedRole",
+      "assignedUserId",
+      "createdAt",
+      "claimedAt",
+      "completedAt",
+      "decisionReason"
+    ]
+  },
+  "pages": {
+    "agentList": {
+      "route": "/agents",
+      "reuse": "Phase 1 agent list",
+      "add": [
+        "status filter",
+        "lifecycle action awareness",
+        "assignment/branch summary if available from detail; do not invent list fields"
+      ]
+    },
+    "agentCreate": {
+      "route": "/agents/new",
+      "reuse": "Phase 1 create form",
+      "behavior": "After create, navigate to agent detail and show DRAFT state."
+    },
+    "agentDetail": {
+      "route": "/agents/:id",
+      "sections": [
+        "profile",
+        "lifecycle status/actions",
+        "current branch assignment",
+        "assignment history",
+        "transfer history",
+        "lifecycle history"
+      ],
+      "actions": [
+        "edit profile",
+        "submit",
+        "verify",
+        "approve",
+        "reject",
+        "assign branch",
+        "activate",
+        "deactivate",
+        "request transfer"
+      ],
+      "tabs": [
+        "Overview",
+        "Assignments",
+        "Transfers",
+        "Lifecycle History"
+      ]
+    },
+    "workflowInbox": {
+      "route": "/workflow/tasks",
+      "purpose": "Current user workflow task inbox",
+      "filters": [
+        "status"
+      ],
+      "table": [
+        "workflowType",
+        "taskType",
+        "entityType",
+        "entityId",
+        "status",
+        "assignedRole",
+        "createdAt",
+        "claimedAt",
+        "completedAt"
+      ],
+      "actions": [
+        "view detail",
+        "claim",
+        "approve",
+        "reject"
+      ]
+    },
+    "workflowTaskDetail": {
+      "route": "/workflow/tasks/:taskId",
+      "purpose": "Review one workflow task and perform allowed workflow actions"
+    },
+    "assignmentDetail": {
+      "route": "/agents/:agentId/assignments/:assignmentId",
+      "purpose": "Display assignment details; read-only"
+    },
+    "referenceExisting": [
+      "/users",
+      "/banks",
+      "/regions",
+      "/areas",
+      "/branches",
+      "/roles",
+      "/audit-logs"
+    ]
+  },
+  "agent_detail_ui": {
+    "header": [
+      "agentCode",
+      "fullName",
+      "status",
+      "nikMasked"
+    ],
+    "profileCard": [
+      "email",
+      "phone",
+      "createdAt",
+      "updatedAt"
+    ],
+    "lifecycleStepper": [
+      "DRAFT",
+      "SUBMITTED",
+      "VERIFICATION",
+      "APPROVED",
+      "ACTIVE",
+      "INACTIVE"
+    ],
+    "rejectedState": "Display rejection reason from lifecycle history when available; do not fabricate a reopen action.",
+    "currentAssignment": "Use GET assignments and identify ACTIVE assignment from response status; do not assume a field not present in AgentResponse.",
+    "actions": {
+      "submit": "DRAFT only",
+      "verify": "SUBMITTED only",
+      "approve": "VERIFICATION only",
+      "reject": "VERIFICATION only",
+      "activate": "APPROVED only and assignment prerequisite",
+      "deactivate": "ACTIVE only",
+      "assign": "Use assignment POST; intended for initial assignment",
+      "transfer": "Use transfer POST; intended for branch transfer"
+    },
+    "dialogs": {
+      "submit": "optional reason",
+      "verify": "optional reason",
+      "approve": "optional reason",
+      "reject": "required reason min 3 max 500",
+      "activate": "optional reason",
+      "deactivate": "required reason min 3 max 500",
+      "assignment": "branch + effectiveFrom + optional reason",
+      "transfer": "destination branch + effectiveFrom + required reason",
+      "workflowDecision": "optional reason unless backend response indicates validation failure"
+    }
+  },
+  "assignment_ui": {
+    "tableColumns": [
+      "branchCode",
+      "branchName",
+      "status",
+      "assignmentType",
+      "effectiveFrom",
+      "effectiveTo",
+      "reason",
+      "createdAt"
+    ],
+    "createForm": [
+      "branchId",
+      "effectiveFrom",
+      "reason"
+    ],
+    "branchSelector": "Load branches from GET /api/v1/branches and allow selection of active/eligible branches based only on data returned; do not invent branch status values beyond backend data.",
+    "dateTime": "Use native timezone-aware date-time handling; serialize ISO-8601 date-time."
+  },
+  "transfer_ui": {
+    "tableColumns": [
+      "sourceBranchCode",
+      "destinationBranchCode",
+      "effectiveFrom",
+      "status",
+      "reason",
+      "requestedBy",
+      "requestedAt",
+      "completedAt"
+    ],
+    "requestForm": [
+      "destinationBranchId",
+      "effectiveFrom",
+      "reason"
+    ],
+    "decisionActions": [
+      "approve",
+      "reject"
+    ],
+    "decisionReason": "Use WorkflowDecisionRequest; display reason field as optional because OpenAPI does not mark it required.",
+    "statusDisplay": "Use backend status string; do not hard-code undocumented transfer status enum."
+  },
+  "workflow_ui": {
+    "inbox": [
+      "server pagination",
+      "status filter",
+      "empty state",
+      "retry",
+      "loading skeleton"
+    ],
+    "taskDetail": [
+      "task metadata",
+      "entity reference",
+      "assignment role/user",
+      "timestamps",
+      "decisionReason",
+      "action area"
+    ],
+    "claim": "No request body. On success refresh task detail and inbox.",
+    "approve": "reason dialog then POST approve.",
+    "reject": "reason dialog then POST reject.",
+    "makerChecker": "If backend returns self-approval/concurrency error, show a specific business error and refresh task."
+  },
+  "rbac": {
+    "principle": "Frontend visibility is convenience only; backend remains authoritative. Never rely on frontend role checks for security.",
+    "roles": [
+      "ROLE_BRANCH_USER",
+      "ROLE_MANAGER",
+      "ROLE_ADMIN",
+      "ROLE_AUDITOR"
+    ],
+    "suggested_visibility": {
+      "ROLE_BRANCH_USER": [
+        "create agent",
+        "edit draft profile",
+        "submit",
+        "request initial assignment",
+        "request transfer",
+        "view own relevant data"
+      ],
+      "ROLE_MANAGER": [
+        "verify",
+        "approve",
+        "reject",
+        "approve/reject transfer",
+        "workflow task actions"
+      ],
+      "ROLE_ADMIN": [
+        "administrative access consistent with existing Phase 1 RBAC"
+      ],
+      "ROLE_AUDITOR": [
+        "read-only lifecycle/assignment/transfer/workflow history"
+      ]
+    },
+    "fallback": "If role is unknown, hide destructive/approval actions but still allow read-only views where backend permits."
+  },
+  "state_action_matrix": [
+    {
+      "status": "DRAFT",
+      "actions": [
+        "edit",
+        "submit",
+        "assign"
+      ]
+    },
+    {
+      "status": "SUBMITTED",
+      "actions": [
+        "verify",
+        "reject"
+      ]
+    },
+    {
+      "status": "VERIFICATION",
+      "actions": [
+        "approve",
+        "reject"
+      ]
+    },
+    {
+      "status": "APPROVED",
+      "actions": [
+        "activate"
+      ]
+    },
+    {
+      "status": "ACTIVE",
+      "actions": [
+        "deactivate",
+        "transfer"
+      ]
+    },
+    {
+      "status": "INACTIVE",
+      "actions": []
+    },
+    {
+      "status": "REJECTED",
+      "actions": [
+        "edit"
+      ]
+    },
+    {
+      "status": "TERMINATED",
+      "actions": []
+    }
+  ],
+  "errors": {
+    "http_409": "Show business conflict/concurrency message, refresh affected data, do not silently retry mutating action.",
+    "validation": "Map field validation messages to form fields when possible.",
+    "401": "Use existing Phase 1 refresh/logout flow.",
+    "403": "Show permission message and hide unavailable action.",
+    "404": "Show not-found state for agent/task/assignment/transfer context.",
+    "generic": "Show API message/errorCode/traceId when available."
+  },
+  "security": {
+    "pii": [
+      "Never display raw NIK; use nikMasked only.",
+      "Never log request bodies containing raw NIK.",
+      "Do not persist tokens in arbitrary application state beyond existing Phase 1 secure approach."
+    ],
+    "auth": "Reuse Phase 1 JWT interceptor/refresh mechanism.",
+    "xss": "Use Vue escaping; do not use v-html for backend strings unless sanitized."
+  },
+  "stores": {
+    "auth": "reuse Phase 1",
+    "agents": [
+      "list",
+      "detail",
+      "lifecycle actions",
+      "loading/error"
+    ],
+    "assignments": [
+      "list",
+      "detail",
+      "create"
+    ],
+    "transfers": [
+      "list",
+      "request",
+      "approve",
+      "reject"
+    ],
+    "workflow": [
+      "myTasks",
+      "detail",
+      "claim",
+      "approve",
+      "reject"
+    ],
+    "branches": "reuse existing branch store/service"
+  },
+  "services": {
+    "files": [
+      "src/services/api/agentApi.ts",
+      "src/services/api/assignmentApi.ts",
+      "src/services/api/transferApi.ts",
+      "src/services/api/workflowApi.ts"
+    ],
+    "rule": "If Phase 1 has different filenames, extend existing conventions instead of duplicating API clients."
+  },
+  "components": {
+    "reuse": [
+      "DataTable",
+      "Pagination",
+      "StatusChip",
+      "ConfirmDialog",
+      "ErrorAlert",
+      "LoadingOverlay",
+      "AppPageHeader"
+    ],
+    "new": [
+      "AgentLifecycleActions",
+      "AgentLifecycleTimeline",
+      "AgentAssignmentCard",
+      "AssignmentHistoryTable",
+      "AssignmentFormDialog",
+      "TransferHistoryTable",
+      "TransferRequestDialog",
+      "TransferDecisionDialog",
+      "WorkflowTaskTable",
+      "WorkflowTaskDetail",
+      "WorkflowDecisionDialog"
+    ]
+  },
+  "routing": {
+    "routes": [
+      "/agents",
+      "/agents/new",
+      "/agents/:id",
+      "/agents/:agentId/assignments/:assignmentId",
+      "/workflow/tasks",
+      "/workflow/tasks/:taskId"
+    ],
+    "guards": "Reuse Phase 1 authentication and role guard conventions. Route guard is not a substitute for API authorization."
+  },
+  "ux": {
+    "responsive": true,
+    "desktop_first": true,
+    "confirm_destructive": [
+      "reject",
+      "deactivate",
+      "transfer approval/rejection where appropriate"
+    ],
+    "optimistic_updates": false,
+    "mutation_pattern": "disable action while pending, show progress, refresh server state after success",
+    "pagination": "server-side only",
+    "dates": "Day.js with localized display; send ISO date-time to API",
+    "notifications": "reuse existing Phase 1 snackbar/toast mechanism"
+  },
+  "testing": {
+    "unit": [
+      "lifecycle action visibility by status",
+      "reason validation",
+      "assignment form validation",
+      "transfer form validation",
+      "workflow action visibility",
+      "API error mapping",
+      "pagination"
+    ],
+    "component": [
+      "agent detail tabs",
+      "lifecycle timeline",
+      "assignment dialog",
+      "transfer dialog",
+      "workflow inbox",
+      "workflow task detail"
+    ],
+    "e2e": [
+      "create agent -> DRAFT -> submit",
+      "submitted -> verify",
+      "verification -> approve/reject",
+      "approved + assignment -> activate",
+      "active -> deactivate",
+      "active -> request transfer -> approve/reject",
+      "workflow task claim -> approve/reject"
+    ],
+    "rule": "Mock APIs at frontend test boundary; do not depend on live backend for unit/component tests."
+  },
+  "acceptance_criteria": [
+    "Existing Phase 1 pages continue to work.",
+    "Frontend matches the supplied Phase 2 OpenAPI paths, request bodies and response fields.",
+    "No lifecycle status is editable through the generic agent profile form.",
+    "All lifecycle actions use dedicated endpoints.",
+    "Agent detail exposes lifecycle history, assignment history and transfer history.",
+    "Initial branch assignment can be created and viewed.",
+    "Transfer can be requested and approved/rejected.",
+    "Workflow inbox supports pagination and status filter.",
+    "Workflow tasks can be claimed and approved/rejected according to backend responses.",
+    "PII remains masked.",
+    "409 and 403 responses are handled clearly.",
+    "npm run build passes.",
+    "Existing frontend tests pass and Phase 2 tests are added."
+  ],
+  "deliverable": "bdms-frontend-phase2-spec.json",
+  "execution_strategy": {
+    "platform": "Antigravity IDE",
+    "model": "Gemini Pro",
+    "mode": "agentic coding",
+    "principles": [
+      "Work directly in the existing Phase 1 frontend repository.",
+      "Inspect before editing; do not assume filenames, stores, routes or components.",
+      "Prefer small, verifiable changes over one large rewrite.",
+      "Keep the application buildable after each implementation group.",
+      "Reuse existing Phase 1 patterns whenever they already solve the requirement.",
+      "Use the supplied OpenAPI as the backend source of truth.",
+      "Do not invent backend behavior to fill gaps."
+    ],
+    "context_efficiency": {
+      "goal": "Minimize unnecessary repository-wide context consumption.",
+      "rules": [
+        "Start with package.json, src tree, router, stores, API client, auth/RBAC utilities and shared components.",
+        "Do not dump the entire repository into context.",
+        "Inspect only files relevant to the current implementation group.",
+        "After each logical group, run the smallest useful validation.",
+        "Reuse existing types/components/services instead of duplicating them."
+      ]
+    }
+  },
+  "gemini_antigravity_instructions": [
+    "Modify the existing completed BDMS Phase 1 Vue frontend; do not scaffold a new application.",
+    "Inspect the repository and existing conventions before coding.",
+    "Use the supplied Phase 2 OpenAPI as the only backend contract. Do not invent endpoints, fields, query parameters, request properties, response properties or undocumented enum values.",
+    "Preserve all Phase 1 functionality and UI conventions.",
+    "Implement in logical groups: API/types, Agent lifecycle/detail, assignments, transfers, workflow, routing/RBAC, tests/cleanup.",
+    "After each group, run the relevant typecheck/test/build command and fix errors before continuing.",
+    "Reuse the existing Axios/API wrapper, interceptors, token refresh, pagination, tables, dialogs, status chips, snackbar/toast and page-header components.",
+    "Never create a generic lifecycle status dropdown. Lifecycle changes must use dedicated endpoints.",
+    "Never send status in PUT /api/v1/agents/{id}.",
+    "Never display or log raw NIK; use nikMasked.",
+    "After mutations, refresh server state.",
+    "Handle 409 as business/concurrency conflict and refresh affected data.",
+    "Handle 403 with existing permission UX.",
+    "Do not implement terminate/reopen because the supplied OpenAPI has no such endpoints.",
+    "Do not change backend or database code.",
+    "Do not rewrite working Phase 1 modules unnecessarily.",
+    "At completion run the actual lint/typecheck/test/build commands discovered from package.json and report results.",
+    "Final response: files changed, features implemented, validation results, API limitations."
+  ],
+  "implementation_phases": [
+    {
+      "phase": 1,
+      "name": "Repository reconnaissance",
+      "tasks": [
+        "Inspect structure, Agent/Branch/auth/RBAC/pagination/API implementations and shared components.",
+        "Identify actual test/build commands."
+      ],
+      "checkpoint": "Provide a concise implementation map."
+    },
+    {
+      "phase": 2,
+      "name": "API layer and types",
+      "tasks": [
+        "Add missing Phase 2 DTO types and API methods only.",
+        "Reuse existing API wrapper.",
+        "Typecheck."
+      ],
+      "checkpoint": "No duplicate client or undocumented endpoint."
+    },
+    {
+      "phase": 3,
+      "name": "Agent lifecycle",
+      "tasks": [
+        "Implement Agent Detail lifecycle actions and history.",
+        "Add reason dialogs and server refresh.",
+        "Keep profile update separate from lifecycle."
+      ],
+      "checkpoint": "Lifecycle works without breaking Phase 1 CRUD."
+    },
+    {
+      "phase": 4,
+      "name": "Assignments and transfers",
+      "tasks": [
+        "Implement assignment history/detail/create.",
+        "Implement transfer history/request/approve/reject."
+      ],
+      "checkpoint": "Only documented DTOs/endpoints."
+    },
+    {
+      "phase": 5,
+      "name": "Workflow",
+      "tasks": [
+        "Implement inbox, status filter, task detail, claim/approve/reject.",
+        "Handle maker-checker/concurrency from backend responses."
+      ],
+      "checkpoint": "Workflow works against OpenAPI."
+    },
+    {
+      "phase": 6,
+      "name": "Routing, RBAC and UX",
+      "tasks": [
+        "Add Phase 2 routes.",
+        "Apply existing RBAC.",
+        "Add loading/empty/error/403/409 states and PII checks."
+      ],
+      "checkpoint": "Phase 1 and Phase 2 navigation stable."
+    },
+    {
+      "phase": 7,
+      "name": "Final verification",
+      "tasks": [
+        "Run actual lint/typecheck/test/build commands.",
+        "Fix errors and review changed files."
+      ],
+      "checkpoint": "Build passes; no undocumented backend dependency."
+    }
+  ],
+  "agent_execution_prompt": "Implement this specification in the existing BDMS Phase 1 frontend using Gemini Pro in Antigravity. Begin with repository reconnaissance, show a concise plan, then execute phase-by-phase. Do not invent APIs or work around missing backend contracts."
+}
